@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Spiel: Würfel + Zahlenkarten</title>
+	<style>
+		body {
+			font-family: "Segoe UI", sans-serif;
+			padding: 20px;
+			background: linear-gradient(135deg, #f0f4ff, #dcecff);
+			margin: 0;
+		}
+		h1 {
+			text-align: center;
+			font-size: 2rem;
+			margin-bottom: 1rem;
+			color: #004080;
+		}
+		.container {
+			background: white;
+			border-radius: 12px;
+			padding: 20px;
+			max-width: 500px;
+			margin: auto;
+			box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+		}
+		button {
+			padding: 16px;
+			font-size: 1.2rem;
+			margin: 10px 5px;
+			border-radius: 12px;
+			border: none;
+			cursor: pointer;
+			background-color: #0078d7;
+			color: white;
+			width: 100%;
+			max-width: 480px;
+		}
+		button:disabled {
+			background-color: #b0cce9;
+			cursor: not-allowed;
+		}
+		button:hover:enabled {
+			background-color: #005fa3;
+		}
+		.dice-container {
+			perspective: 600px;
+			width: 100px;
+			height: 100px;
+			margin: 20px auto;
+		}
+		.dice {
+			width: 100px;
+			height: 100px;
+			position: relative;
+			transform-style: preserve-3d;
+			transform: rotateX(0deg) rotateY(0deg);
+			transition: transform 1s;
+		}
+		.face {
+			position: absolute;
+			width: 100px;
+			height: 100px;
+			background: #fff;
+			border: 2px solid #0078d7;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 2rem;
+			font-weight: bold;
+			color: #0078d7;
+		}
+		.front  { transform: rotateY(0deg) translateZ(50px); }
+		.back   { transform: rotateY(180deg) translateZ(50px); }
+		.right  { transform: rotateY(90deg) translateZ(50px); }
+		.left   { transform: rotateY(-90deg) translateZ(50px); }
+		.top    { transform: rotateX(90deg) translateZ(50px); }
+		.bottom { transform: rotateX(-90deg) translateZ(50px); }
+
+		.card-container {
+			perspective: 1000px;
+			width: 150px;
+			height: 150px;
+			margin: 20px auto;
+		}
+		.card {
+			width: 100%;
+			height: 100%;
+			position: relative;
+			transform-style: preserve-3d;
+			transition: transform 0.6s;
+		}
+		.card.flip {
+			transform: rotateY(180deg);
+		}
+		.card-face {
+			position: absolute;
+			width: 100%;
+			height: 100%;
+			backface-visibility: hidden;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 2rem;
+			border-radius: 12px;
+		}
+		.card-front {
+			background: #f3f3f3;
+			color: #999;
+			border: 2px dashed #ccc;
+		}
+		.card-back {
+			background: #fdf6d9;
+			color: #a02b2b;
+			font-weight: bold;
+			transform: rotateY(180deg);
+			border: 3px solid #a02b2b;
+		}
+		.info {
+			font-size: 1rem;
+			color: #444;
+			margin-top: 20px;
+			background: #fffbe6;
+			padding: 15px;
+			border-left: 6px solid #ffcc00;
+			border-radius: 8px;
+		}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>🎲 Dein Spielzug</h1>
+
+		<button id="rollButton" onclick="rollDice()">+ oder – würfeln</button>
+		<div class="dice-container">
+			<div class="dice" id="dice">
+				<div class="face front">+</div>
+				<div class="face back">–</div>
+				<div class="face right">+</div>
+				<div class="face left">–</div>
+				<div class="face top">+</div>
+				<div class="face bottom">–</div>
+			</div>
+		</div>
+
+		<button id="drawButton" onclick="drawNumberCard()" disabled>Zahlenkarte ziehen</button>
+		<div class="card-container">
+			<div class="card" id="numberCard">
+				<div class="card-face card-front">?</div>
+				<div class="card-face card-back" id="cardValue">Zahl</div>
+			</div>
+		</div>
+
+		<div class="info">
+			💡 Du kannst jetzt entscheiden, ob du <strong>Gutscheine (blau)</strong> oder <strong>Schuldscheine (rot)</strong> abgibst oder bekommst. <br><br>
+			✂️ Bastle dir vorher 20 rote und 20 blaue Scheine aus Papier. Jeder Spieler braucht seinen eigenen Vorrat.
+		</div>
+	</div>
+
+	<script>
+		const card = document.getElementById("numberCard");
+		const cardValue = document.getElementById("cardValue");
+		const dice = document.getElementById("dice");
+		const rollButton = document.getElementById("rollButton");
+		const drawButton = document.getElementById("drawButton");
+
+		let numberDeck = [];
+		let lastSign = null;
+		for (let i = -10; i <= 10; i++) {
+			numberDeck.push(i);
+			numberDeck.push(i);
+		}
+		shuffle(numberDeck);
+
+		function shuffle(array) {
+			for (let i = array.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[array[i], array[j]] = [array[j], array[i]];
+			}
+		}
+
+		function rollDice() {
+			rollButton.disabled = true;
+			drawButton.disabled = true;
+			let numberOfRoles = Math.floor(Math.random() * 4) + 1;
+			rollDiceRecursive(numberOfRoles);
+		}
+
+		function rollDiceRecursive(rolesLeft) {
+			const rotations = [
+				{x: 0, y: 0, sign: "+"},
+				{x: 0, y: 180, sign: "–"},
+				{x: 0, y: 90, sign: "+"},
+				{x: 0, y: -90, sign: "–"},
+				{x: 90, y: 0, sign: "+"},
+				{x: -90, y: 0, sign: "–"}
+			];
+			const choice = rotations[Math.floor(Math.random() * rotations.length)];
+			lastSign = choice.sign;
+			dice.style.transform = `rotateX(${choice.x}deg) rotateY(${choice.y}deg)`;
+
+			dice.addEventListener('transitionend', function handler() {
+				dice.removeEventListener('transitionend', handler);
+				if (rolesLeft > 1) {
+					rollDiceRecursive(rolesLeft - 1);
+				} else {
+					drawButton.disabled = false;
+				}
+			});
+		}
+
+		function drawNumberCard() {
+			if (numberDeck.length === 0) {
+				cardValue.textContent = "Leer";
+				return;
+			}
+			const cardNum = numberDeck.pop();
+			cardValue.textContent = `${cardNum > 0 ? '+' + cardNum : cardNum}`;
+			card.classList.add("flip");
+			drawButton.disabled = true;
+
+			const weiterButton = document.createElement("button");
+			weiterButton.textContent = "Weiter";
+			weiterButton.style.marginTop = "1rem";
+			weiterButton.style.fontSize = "1.25rem";
+			weiterButton.style.padding = "16px";
+			weiterButton.style.width = "100%";
+			weiterButton.style.borderRadius = "12px";
+			weiterButton.style.backgroundColor = "#0078d7";
+			weiterButton.style.color = "white";
+			weiterButton.style.border = "none";
+			weiterButton.style.cursor = "pointer";
+			weiterButton.style.maxWidth = "480px";
+			weiterButton.onclick = () => {
+				card.classList.remove("flip");
+				rollButton.disabled = false;
+				weiterButton.remove();
+			};
+			document.querySelector(".container").appendChild(weiterButton);
+		}
+	</script>
+</body>
+</html>
