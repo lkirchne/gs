@@ -166,7 +166,6 @@
 		const drawButton = document.getElementById("drawButton");
 
 		let numberDeck = [];
-		let lastSign = null;
 		for (let i = -10; i <= 10; i++) {
 			numberDeck.push(i);
 			numberDeck.push(i);
@@ -187,27 +186,31 @@
 			rollDiceRecursive(numberOfRoles);
 		}
 
-		function rollDiceRecursive(rolesLeft) {
+		function rollDiceRecursive(rolesLeft, oldIndex = -1) {
 			const rotations = [
-				{x: 0, y: 0, sign: "+"},
-				{x: 0, y: 180, sign: "–"},
-				{x: 0, y: 90, sign: "+"},
-				{x: 0, y: -90, sign: "–"},
-				{x: 90, y: 0, sign: "+"},
-				{x: -90, y: 0, sign: "–"}
+				{x: 0, y: 180},
+				{x: 0, y: 90},
+				{x: 0, y: -90},
+				{x: 90, y: 0},
+				{x: -90, y: 0}
 			];
-			const choice = rotations[Math.floor(Math.random() * rotations.length)];
-			lastSign = choice.sign;
-			dice.style.transform = `rotateX(${choice.x}deg) rotateY(${choice.y}deg)`;
+			let newIndex = Math.floor(Math.random() * rotations.length);
 
-			dice.addEventListener('transitionend', function handler() {
-				dice.removeEventListener('transitionend', handler);
-				if (rolesLeft > 1) {
-					rollDiceRecursive(rolesLeft - 1);
-				} else {
-					drawButton.disabled = false;
-				}
-			});
+            // Stelle sicher, dass die neue Wahl nicht gleich der alten ist
+            if (newIndex === oldIndex) {
+                newIndex = (newIndex + 1) % rotations.length;
+            }
+
+            const choice = rotations[newIndex];
+            dice.style.transform = `rotateX(${choice.x}deg) rotateY(${choice.y}deg)`;
+
+            setTimeout(() => {
+                if (rolesLeft > 1) {
+                    rollDiceRecursive(rolesLeft - 1, newIndex);
+                } else {
+                    drawButton.disabled = false;
+                }
+            }, 1000); // 1 Sekunde entspricht der CSS-Transition-Dauer
 		}
 
 		function drawNumberCard() {
