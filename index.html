@@ -188,12 +188,12 @@
 
 		function rollDiceRecursive(rolesLeft, oldIndex = -1) {
 			const rotations = [
-				{x: 0, y: 180},
-				{x: 0, y: 90},
-				{x: 0, y: -90},
-				{x: 90, y: 0},
-				{x: -90, y: 0}
-			];
+                {x: 0, y: 180, sign: "–"},
+                {x: 0, y: 90, sign: "+"},
+                {x: 0, y: -90, sign: "–"},
+                {x: 90, y: 0, sign: "+"},
+                {x: -90, y: 0, sign: "–"}
+            ];
 			let newIndex = Math.floor(Math.random() * rotations.length);
 
             // Stelle sicher, dass die neue Wahl nicht gleich der alten ist
